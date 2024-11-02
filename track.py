@@ -86,6 +86,13 @@ class Track:
             if self._point_within_boundary_segment(car_x, car_y, left_point1, left_point2, right_point1, right_point2):
                 return True
         return False
+    
+    def get_goal_line(self, index):
+        """Retrieve a specific goal line by index, wrapping around if out of range."""
+        if index < 0 or index >= len(self.goals):
+            # Wrap around if index is out of bounds to allow cyclic behavior
+            index = index % len(self.goals)
+        return self.goals[index]
 
     def _point_within_boundary_segment(self, px, py, lp1, lp2, rp1, rp2):
         """Helper function to check if a point is within a boundary segment."""
@@ -106,7 +113,7 @@ if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode(MAIN_WINDOW_SIZE)
     clock = pygame.time.Clock()
-    track = Track(None, "environment/Austin.csv")
+    track = Track(None, "Austin.csv")
 
     running = True
     while running:

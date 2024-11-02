@@ -18,6 +18,7 @@ class Car:
         self.game = game
         self.track = track
         self.visible = True
+        self.echo_collision_distances_interp = np.zeros(self.N_SENSORS)  # Initialize this attribute
         self.reset_game_state()  # Reset initial car state
 
     def reset_game_state(self, x=START_POS[0], y=START_POS[1], ang=-92, vel_x=0, vel_y=0, level=0):
@@ -36,6 +37,7 @@ class Car:
         self.action = np.array([0, 0])
         self.update_goal_vectors()
         self.update_echo_vectors()
+        self.check_collision_echo()
 
     def update_state(self, car_state):
         # Update car's state variables
@@ -108,7 +110,7 @@ class Car:
                 break
 
     def check_collision_echo(self):
-        # Set max sensor distance for obstacle detection
+        # Make sure this function sets echo_collision_distances_interp
         max_distance = 5000
         points = np.full((self.N_SENSORS, 2), self.position.x)
         points[:, 1] = self.position.y
@@ -129,6 +131,7 @@ class Car:
                 distances[i] = min_distance
 
         self.echo_collision_points = points
+        # Set echo_collision_distances_interp to be normalized distances for observation space
         self.echo_collision_distances_interp = np.interp(distances, [0, 1000], [-1, 1])
 
     def update_reward_level(self):
