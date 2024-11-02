@@ -159,8 +159,9 @@ class Car:
         if self.game.camera_mode == 'centered':
             # in centered mode, move track, not car
             self.track.move_env(d_x, d_y)
-            self.movement_vector = [MAIN_WINDOW_SIZE[0] / 2, MAIN_WINDOW_SIZE[1] / 2, 
+            self.movement_vector = [MAIN_WINDOW_SIZE[0] / 2, MAIN_WINDOW_SIZE[1] / 2,
                                     MAIN_WINDOW_SIZE[0] / 2 + d_x, MAIN_WINDOW_SIZE[1] / 2 + d_y]
+
         elif self.game.camera_mode == 'fixed':
             # in fixed mode, move car position
             self.position.x -= d_x
