@@ -163,21 +163,6 @@ class Race(gym.Env):
         self.spectator = state
         if frame:
             self.car.framecount_total = frame
-
-    def reset(self, seed=None, options=None):
-        # Initialize your environment state here
-        initial_observation = np.zeros(8, dtype=np.float32)
-        info = {}
-        return initial_observation, info
-
-    def step(self, action):
-        # Perform the action and update environment state
-        observation = np.zeros(8, dtype=np.float32)  # example observation
-        reward = 0.0  # example reward
-        terminated = False  # indicates if episode is over
-        truncated = False  # indicates if episode was truncated (e.g., due to time limits)
-        info = {}
-        return observation, reward, terminated, truncated, info
     
     def reset_car_state(self, x=START_POS[0], y=START_POS[1], ang=-92, vel_x=0, vel_y=0, level=0):  # ang=1e-10
         # if camera_mode is centerd, the car needs to go center too
