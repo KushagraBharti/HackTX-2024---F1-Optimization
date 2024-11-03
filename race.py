@@ -83,13 +83,10 @@ class Race(gym.Env):
             'gui_draw_goal_next'    : [True, False],
         }
         
-        # ─── STEP 1 GET DEFAULT VALUE ────────────────────────────────────
         assign_dict = {}
         for keyword in keyword_dict:
-            # asign default value form keyword_dict
             assign_dict[keyword] = keyword_dict[keyword][0]
             
-        # ─── STEP 2 GET VALUE FROM env_config ─────────────────────────────
         for keyword in env_config:
             if keyword in keyword_dict:
                 # possible keyword proceed with assigning
@@ -108,7 +105,6 @@ class Race(gym.Env):
             else:
                 print('passed keyword does not exist: ',keyword)
 
-        # ─── ASSIGN DEFAULT VALUES ───────────────────────────────────────
         self.camera_mode           = assign_dict['camera_mode']
         self.env_name              = assign_dict['env_name']
         self.env_visible           = assign_dict['env_visible']
@@ -142,14 +138,12 @@ class Race(gym.Env):
         if self.camera_mode == 'centered':
             self.track.load_level()
 
-        # ─── RESET EXPORT VARIALBES ──────────────────────────────────────
         # give unique session id for export
         self.session_id = str(int(np.random.rand(1)*10**6)).zfill(6)
         # dim0 : n_steps | dim1 : frame, x,y,ang,vel,action
         # self.statematrix = np.zeros((self.max_steps, 5))
         self.statematrix = np.zeros((self.max_steps, 6))
 
-        # ─── RESET car ──────────────────────────────────────────────────
         self.reset_car_state()
         # generate observation
         self.car.update_observations()
@@ -165,7 +159,6 @@ class Race(gym.Env):
             self.car.framecount_total = frame
     
     def reset_car_state(self, x=START_POS[0], y=START_POS[1], ang=-92, vel_x=0, vel_y=0, level=0):  # ang=1e-10
-        # if camera_mode is centerd, the car needs to go center too
         if self.camera_mode == 'centered':
             diff_x = MAIN_WINDOW_SIZE[0]/2  - x
             diff_y = MAIN_WINDOW_SIZE[1]/2 - y
@@ -183,7 +176,6 @@ class Race(gym.Env):
             # copy last state to remaining frames
             i = self.car.framecount_total
             n_new = self.max_steps - i
-            # self.statematrix[i:, :] = np.repeat(self.statematrix[i-1, :].reshape((1, 5)), n_new, axis=0)
             self.statematrix[i:, :] = np.repeat(self.statematrix[i-1, :].reshape((1, 6)), n_new, axis=0)
             # mark at which frame agent is done
             self.statematrix[i:, 0] = 0
@@ -196,13 +188,11 @@ class Race(gym.Env):
             np.save(filenamepath, self.statematrix)
 
     def step(self, action=[0, 0]):
-        # ─── NORMALIZE ACTION ────────────────────────────────────────────
         # action = [action_turn, action_acc]
         action[0] = max(min(action[0], 1), -1)
         action[1] = max(min(action[1], 1), -1)
         self.car.action = action.copy()
 
-        # ─── PERFORM STEP ────────────────────────────────────────────────
         if not self.car.done:
             self.car.move(action)
             self.car.update_echo_vectors()
@@ -212,7 +202,6 @@ class Race(gym.Env):
                 self.car.check_collision_track()
             self.car.update_observations()
 
-            # ─── EXPORT GAME STATE ───────────────────────────────────────────
             if self.export_states:
                 i = self.car.framecount_total
                 self.statematrix[i, :] = [i, self.car.position.x, self.car.position.y, self.car.angle, self.car.net_velocity.y, self.car.action_state]
@@ -237,7 +226,6 @@ class Race(gym.Env):
                 if self.car.level == 1 and self.car.n_lap == self.max_laps:
                     self.set_done()
 
-        # ─── GET RETURN VARIABLES ────────────────────────────────────────
         distances = self.car.echo_collision_distances_interp
         velocity = self.car.vel_interp
 
@@ -250,7 +238,6 @@ class Race(gym.Env):
             "y": self.car.position.y,
             "ang": self.car.angle}
 
-        # ─── RESET ITERATION VARIABLES ───────────────────────────────────
         self.car.reward_step = 0
         self.car.level_previous = self.car.level
         return observations, reward, done, info
@@ -393,11 +380,9 @@ class Race(gym.Env):
                 return 'value not found'
 
 
-        # ─── INIT RENDERER ───────────────────────────────────────────────
         if self.win is None:
             init_renderer(self)
 
-        # ─── RECURING RENDERING ──────────────────────────────────────────
         if self.gui_draw_background:
             self.win.blit(self.BG_IMG, (0, 0))
         else:
@@ -420,7 +405,6 @@ class Race(gym.Env):
             draw_car()
         draw_spectators()
 
-        # ─── INTERFACE ───────────────────────────────────────────────────
         if self.gui:
             POS = 'topleft'
             if self.gui_state:
@@ -439,10 +423,8 @@ class Race(gym.Env):
                     draw_text(self.win, text=k, size=FONT_SIZE//2, x=gui_x_list[(i+2)], y=3*(FONT_SIZE+FONT_SIZE//2)+FONT_SIZE//2, position=POS)
                     draw_text(self.win, text=get_gui_value(k), size=FONT_SIZE, x=gui_x_list[(i+2)], y=3*(FONT_SIZE+FONT_SIZE//2)+FONT_SIZE, position=POS)
 
-        # ─── RENDER GAME ─────────────────────────────────────────────────
         pygame.display.update()
 
-        # ─── EXPORT GAME FRAMES ──────────────────────────────────────────
         if self.export_frames:
             pygame.pixelcopy.surface_to_array(
                 self.image3d, self.display_surface)

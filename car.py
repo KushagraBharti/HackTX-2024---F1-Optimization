@@ -31,11 +31,8 @@ class Car:
 
         self.level = level
         self.level_previous = level
-        # framecount_goal: since last goal
         self.framecount_goal = 0
-        # framecount_total: since reset
         self.framecount_total = 0
-        # reward: since last frame
         self.n_lap = 0
         self.reward_step = 0
         self.reward_total = 0
@@ -83,7 +80,7 @@ class Car:
 
     def update_echo_vectors(self):
         n = self.N_SENSORS
-        if n % 2 == 0: n = max(n-1, 3)  # make sure that n>=3 and odd
+        if n % 2 == 0: n = max(n-1, 3)  
         matrix = np.zeros((n, 4))
         matrix[:, 0], matrix[:, 1] = self.position
         for idx, ang in enumerate(np.linspace(-60, 60, n)):
@@ -100,36 +97,29 @@ class Car:
 
     def accelerate(self, accelerate):  # input: action1
         self.net_velocity += (0.0, accelerate)
-        # self.net_velocity.y = max(-self.MAX_VELOCITY, min(self.net_velocity.y, self.MAX_VELOCITY))
         self.net_velocity.y = max(0, min(self.net_velocity.y, self.MAX_VELOCITY))
         self.velocity = self.net_velocity.rotate(self.angle)
 
     def update_observations(self):
-        # ─── OBSERVATION 8: VELOCITY ─────────────────────────────────────
         vel = self.net_velocity.y
         self.vel_interp = np.interp(vel, [0, self.MAX_VELOCITY], [-1, 1])
 
     def move(self, action):
-        # first apply rotation!
         self.rotate(action[0])
         self.accelerate(action[1])
 
-        # ─── MOVE ───────────────────────────────────────────────────
         d_x, d_y = self.velocity.x, self.velocity.y
         x_from, y_from = self.position.x, self.position.y
 
-        # ─── CENTERED MODE ───────────────────────────────────────────────
         if self.game.camera_mode == 'centered':
             self.track.move_env(d_x,d_y)
             self.movement_vector = [MAIN_WINDOW_SIZE[0]/2, MAIN_WINDOW_SIZE[1]/2, MAIN_WINDOW_SIZE[0]/2 + d_x, [1]/2 + d_y]
-        # ─── FIXED MODE ─────────────────────────────────────────────────
+
         if self.game.camera_mode == 'fixed':
             self.position.x -= d_x
             self.position.y -= d_y
             self.movement_vector = [x_from, y_from, self.position.x, self.position.y]
 
-        # ─── KEEP ON SCREEN ──────────────────────────────────────────────
-        # rocket cannot leave fixed screen area
         if self.game.rule_keep_on_screen:
             if self.position.x > MAIN_WINDOW_SIZE[0]:
                 self.position.x = MAIN_WINDOW_SIZE[0]
@@ -162,11 +152,10 @@ class Car:
                 break
 
     def check_collision_echo(self):
-        # max_distance: Distance value maps to observation=1 if distance >= max_distance
         max_distance = 5000
-        points = np.full((self.N_SENSORS, 2), self.position.x) # points for visualiziation
+        points = np.full((self.N_SENSORS, 2), self.position.x)
         points[:,1] = self.position.y
-        distances = np.full((self.N_SENSORS), max_distance) # distances for observation
+        distances = np.full((self.N_SENSORS), max_distance) 
         n = self.track.level_collision_vectors.shape[0]
         for i in range(self.N_SENSORS):
             found = False
@@ -180,22 +169,19 @@ class Car:
                     points_candidates[j,:] = result
                     distances_candidates[j] = np.sqrt((self.position.x-result[0])**2+(self.position.y-result[1])**2)
             if found: # make sure one intersection is found
-                argmin = np.argmin(distances_candidates)  # index of closest intersection 
+                argmin = np.argmin(distances_candidates) 
                 points[i, :] = points_candidates[argmin]
                 distances[i] = distances_candidates[argmin]
 
         self.echo_collision_points = points
-        # ─── NORMALIZE DISTANCES ─────────────────────────────────────────
+        # NORMALIZE DISTANCES
         # linear mapping from 0,1000 to -1,1
         # distance 0 becomes -1, distance 1000 becomes +1
         # values always in range [-1,1]
         self.echo_collision_distances_interp = np.interp(distances, [0, 1000], [-1, 1])
 
     def heuristic_agent(self):
-        """
-        Heuristic agent that leverages existing echo vector distances to navigate the track.
-        """
-        # Ensure the echo vectors and collision points are up-to-date
+
         self.update_echo_vectors()
         self.check_collision_echo()  # This updates echo distances
 
@@ -244,13 +230,10 @@ class Car:
         self.move([steering, acceleration])
 
     def echo_heuristic_agent(self):
-        """
-        Heuristic agent that steers towards the longest echo vector at a very slow speed
-        and with a high turning response.
-        """
+
         # Update echo vectors and calculate distances to boundaries
         self.update_echo_vectors()
-        self.check_collision_echo()  # This updates self.echo_collision_distances_interp with sensor distances
+        self.check_collision_echo() # This updates echo distances
 
         # Find the index of the longest echo vector (the sensor with the maximum distance)
         longest_index = np.argmax(self.echo_collision_distances_interp)
@@ -263,7 +246,7 @@ class Car:
         
         # Adjust steering to point towards the longest vector direction
         # Increase steering angle sensitivity by a factor to make sharper turns
-        steering = (angle_offset / 60.0) * 9.0  # Multiplied by 2 for sharper turns
+        steering = (angle_offset / 60.0) * 9.0  # Multiplied by 9 for sharper turns
 
         # Use very slow acceleration to maintain a controlled, slow pace
         # Keep acceleration low regardless of the distance to maintain very slow speed

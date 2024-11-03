@@ -5,7 +5,6 @@ from race import Race
 run = True
 heuristic_mode = False
 
-# ─── FUNCTIONS FOR USER INPUT ───────────────────────────────────────────────────
 def event_to_action(eventlist):
     global run, heuristic_mode
     for event in eventlist:
@@ -43,7 +42,6 @@ def pressed_to_action(pressed):
 
 
 if __name__ == "__main__":
-    # ─── INITIALIZE AND RUN ENVIRONMENT ─────────────────────────────────────────────
         
     env_config = {
         'gui': True,
