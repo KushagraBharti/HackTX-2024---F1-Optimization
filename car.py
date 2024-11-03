@@ -52,23 +52,28 @@ class Car:
         reward_total_previous = self.reward_total
         if self.level == 0 and self.level_previous == self.track.n_goals-1:
             self.n_lap += 1
+            print(f"Completed lap {self.n_lap}.")
         if self.level == self.track.n_goals-1 and self.level_previous == 0:
             self.n_lap -= 1
         self.reward_total = self.n_lap * self.track.n_goals + self.level
         self.reward_step = self.reward_total - reward_total_previous
+        print(f"Reward updated to {self.reward_total} at level {self.level}.")
 
     def update_reward_laptime(self):
         if self.level == 0 and self.level_previous == self.track.n_goals-1:
             self.n_lap += 1
+            print(f"Completed lap {self.n_lap}.")
         if self.level == self.track.n_goals-1 and self.level_previous == 0:
             self.n_lap -= 1
         if (self.level - self.level_previous == 1) or (self.level == 0 and self.level_previous == self.track.n_goals-1):
             self.reward_step = max(1, max(0, 100-self.framecount_goal)) / 100
             self.reward_total += self.reward_step
+            print(f"Progress reward gained: {self.reward_step}. Total reward: {self.reward_total}")
             self.framecount_goal = 0
         if (self.level - self.level_previous == -1) or (self.level == self.track.n_goals-1 and self.level_previous == 0):
             self.reward_step = - 1
             self.reward_total += self.reward_step
+            print(f"Penalty applied: {self.reward_step}. Total reward: {self.reward_total}")
             self.framecount_goal = 0
 
     def update_goal_vectors(self):
@@ -185,3 +190,97 @@ class Car:
         # distance 0 becomes -1, distance 1000 becomes +1
         # values always in range [-1,1]
         self.echo_collision_distances_interp = np.interp(distances, [0, 1000], [-1, 1])
+
+    def heuristic_agent(self):
+        """
+        Heuristic agent that leverages existing echo vector distances to navigate the track.
+        """
+        # Ensure the echo vectors and collision points are up-to-date
+        self.update_echo_vectors()
+        self.check_collision_echo()  # This updates echo distances
+
+        # Parameters for movement
+        steering = 0
+        acceleration = 0.5  # Moderate acceleration
+
+        # Sensor readings
+        front_distance = self.echo_collision_distances_interp[self.N_SENSORS // 2]  # center sensor
+        left_distance = self.echo_collision_distances_interp[0]
+        right_distance = self.echo_collision_distances_interp[-1]
+
+        # Thresholds for obstacle distance
+        safe_distance = 0.09  # Consider distances greater than this as "safe"
+        close_distance = 0.05  # Trigger avoidance if below this
+
+        # Heuristic navigation logic
+        if front_distance < close_distance:
+            # Very close obstacle, decide to turn left or right based on which side is more open
+            print("Close obstacle detected. Turning to avoid collision.")
+            acceleration = -0.9  # Brake to avoid collision
+            steering = 0.7 if left_distance > right_distance else -0.7
+            acceleration = 0.2  # Accelerate after avoiding collision
+
+        elif front_distance < safe_distance:
+            # Moderate obstacle distance; adjust to avoid heading straight into it
+            print("Adjusting to avoid moderate obstacle.")
+            if left_distance < right_distance:
+                steering = 0.5  # Steer left
+            else:
+                steering = -0.5  # Steer right
+            acceleration = 0.4  # Slightly reduce speed
+
+        else:
+            # No immediate obstacle, steer towards the longest open path
+            print("Clear path detected. Accelerating.")
+            if left_distance < safe_distance and right_distance >= safe_distance:
+                steering = -0.2  # Small right turn to keep distance from left boundary
+            elif right_distance < safe_distance and left_distance >= safe_distance:
+                steering = 0.2  # Small left turn to keep distance from right boundary
+            else:
+                steering = 0  # Keep straight if balanced
+            acceleration = 0.8  # Increase speed when the path is clear
+
+        # Move with the chosen steering and acceleration
+        self.move([steering, acceleration])
+
+    def echo_heuristic_agent(self):
+        """
+        Heuristic agent that steers towards the longest echo vector at a very slow speed
+        and with a high turning response.
+        """
+        # Update echo vectors and calculate distances to boundaries
+        self.update_echo_vectors()
+        self.check_collision_echo()  # This updates self.echo_collision_distances_interp with sensor distances
+
+        # Find the index of the longest echo vector (the sensor with the maximum distance)
+        longest_index = np.argmax(self.echo_collision_distances_interp)
+        longest_distance = self.echo_collision_distances_interp[longest_index]
+        
+        # Steering logic to follow the longest vector
+        # Calculate the angle to the longest echo vector based on its index
+        # Assume sensors are spaced evenly across a 120-degree field of view
+        angle_offset = np.linspace(-60, 60, self.N_SENSORS)[longest_index]
+        
+        # Adjust steering to point towards the longest vector direction
+        # Increase steering angle sensitivity by a factor to make sharper turns
+        steering = (angle_offset / 60.0) * 9.0  # Multiplied by 2 for sharper turns
+
+        # Use very slow acceleration to maintain a controlled, slow pace
+        # Keep acceleration low regardless of the distance to maintain very slow speed
+        acceleration = 0.05  # Extremely low speed for precision
+
+        print(f"Following longest vector at index {longest_index} with distance {longest_distance:.2f}. Steering: {steering:.2f}, Acceleration: {acceleration:.2f}")
+
+        # Check for collisions after the move
+        self.check_collision_track()  # This sets `self.done` if a collision occurs
+
+        # Calculate reward
+        if self.game.reward_mode == 'level':
+            self.update_reward_level()  # Updates reward based on checkpoints passed
+        elif self.game.reward_mode == 'laptime':
+            self.update_reward_laptime()
+            
+        # Execute the move command with calculated steering and acceleration
+        self.move([steering, acceleration])
+
+

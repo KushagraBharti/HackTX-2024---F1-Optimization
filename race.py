@@ -293,8 +293,8 @@ class Race(gym.Env):
                 self.gui_interface.append('Level')
                 self.gui_interface.append('Lap')
                 self.gui_interface.append('Total_frames')
-                # self.gui_interface.append('Position')
-                # self.gui_interface.append('Angle')
+                self.gui_interface.append('Position')
+                self.gui_interface.append('Angle')
 
         def draw_level():
             pygame.draw.lines(self.win, TRACK_COLOR, False, self.track.line1_list, 4)
@@ -353,8 +353,8 @@ class Race(gym.Env):
                 pygame.draw.circle(self.win, ECHO_COLLISION_COLOR, (int(point[0]), int(point[1])), 2)
 
         def draw_text(surface, text=None, size=12, x=0, y=0, 
-                      font_name=pygame.font.match_font('consolas'), 
-                      position='topleft'):
+            font_name=pygame.font.match_font('consolas'), 
+            position='topleft'):
             font = pygame.font.Font(font_name, size)
             text_surface = font.render(text, True, FONT_COLOR)
             text_back = pygame.Surface(text_surface.get_size())
@@ -364,7 +364,7 @@ class Race(gym.Env):
             text_back.fill(FONT_BACKGROUND)
             surface.blit(text_back, text_rect)
             surface.blit(text_surface, text_rect)
-            
+                
         def get_gui_value(value: str):
             if value == 'Total_reward':
                 return str(round(self.car.reward_total, 2))
@@ -458,7 +458,7 @@ class Race(gym.Env):
                 '.jpg'])
             filenamepath = os.path.join('exported_frames', filename)
             imrgb.save(filenamepath)
-
+    
     def get_car_state(self):
         return np.array([
             self.car.position,

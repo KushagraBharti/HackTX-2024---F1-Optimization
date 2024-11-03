@@ -2,14 +2,24 @@ import numpy as np
 import pygame
 from race import Race
 
+run = True
+heuristic_mode = False
+
 # ─── FUNCTIONS FOR USER INPUT ───────────────────────────────────────────────────
 def event_to_action(eventlist):
-    global run
+    global run, heuristic_mode
     for event in eventlist:
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-            env.reset()
+        elif event.type == pygame.KEYDOWN:  # Only check for keydown events
+            if event.key == pygame.K_r:
+                env.reset()
+            elif event.key == pygame.K_h:  # Activate heuristic mode on 'H' key press
+                heuristic_mode = True
+        elif event.type == pygame.KEYUP:  # Only check for keyup events
+            if event.key == pygame.K_h:  # Deactivate heuristic mode on 'H' key release
+                heuristic_mode = False
+
 
 def pressed_to_action(pressed):
     if pressed[pygame.K_UP]:
@@ -34,6 +44,7 @@ def pressed_to_action(pressed):
 
 if __name__ == "__main__":
     # ─── INITIALIZE AND RUN ENVIRONMENT ─────────────────────────────────────────────
+        
     env_config = {
         'gui': True,
         # 'export_frames': True,
@@ -51,7 +62,14 @@ if __name__ == "__main__":
         env.clock.tick(120)
         get_event = pygame.event.get()
         event_to_action(get_event)
-        action = pressed_to_action(pygame.key.get_pressed())
-        env.step(action=action)
+
+        # Use heuristic agent if activated
+        if heuristic_mode:
+            #env.car.heuristic_agent()
+            env.car.echo_heuristic_agent()
+        else:
+            action = pressed_to_action(pygame.key.get_pressed())
+            env.step(action=action)
+
         env.render()
     pygame.quit()
