@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
+import os
+
+
 TRACK_SIZE = 2463, 1244
 MAIN_WINDOW_SIZE = int(TRACK_SIZE[0]/1.3), int(TRACK_SIZE[1]/1.3)
 
@@ -18,7 +21,15 @@ class Track:
 
     @staticmethod
     def get_checkpoints():
-        img = cv2.imread('Monza_track_extra_wide_contour.png')
+
+                # Construct absolute path to the image
+        script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the script
+        img_path = os.path.join(script_dir, 'Monza_track_extra_wide_contour.png')
+        img = cv2.imread(img_path)
+
+        if img is None:
+            raise FileNotFoundError(f"Image at {img_path} not found.")
+        
         img = cv2.resize(img, MAIN_WINDOW_SIZE, fx=1/1.3, fy=1/1.3)
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
